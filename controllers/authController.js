@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
+// VULNERABILITY 8: Weak JWT Implementation - Token expiration is too long (30 days)
+// FIX: Reduce token expiration to a shorter duration (e.g., 1 hour for access tokens)
 // Generate JWT Token
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });

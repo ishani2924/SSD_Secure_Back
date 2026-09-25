@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// VULNERABILITY 8: Weak JWT Implementation - No token expiration validation beyond basic JWT verification
+// FIX: Implement token refresh mechanism and shorter expiration times for access tokens
 const authMiddleware = async (req, res, next) => {
     try {
         const token = req.header('Authorization')?.replace('Bearer ', '');
