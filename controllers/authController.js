@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -151,5 +152,52 @@ exports.getProfile = async (req, res) => {
     } catch (err) {
         console.error('GetProfile error:', err);
         res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+// @desc    Facebook Login
+// @route   POST /api/auth/facebook
+// @access  Public
+exports.facebookLogin = async (req, res) => {
+    const { accessToken, userID } = req.body;
+    try {
+        if (!accessToken || !userID) {
+            return res.status(400).json({ message: 'Missing Facebook token or userID' });
+        }
+        
+        // Verify token with Facebook
+        const { data } = await axios.get(`https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`);
+        
+        if (data.id !== userID) {
+            return res.status(400).json({ message: 'Invalid Facebook token for this user' });
+        }
+        
+        let user = await User.findOne({ email: data.email });
+        
+        if (!user) {
+            user = await User.create({
+                name: data.name,
+                email: data.email,
+                facebookId: data.id,
+                // password is not required and will be empty
+            });
+        } else if (!user.facebookId) {
+            // Link facebook to existing user
+            user.facebookId = data.id;
+            await user.save();
+        }
+        
+        res.json({
+            token: generateToken(user._id),
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }
+        });
+    } catch (err) {
+        console.error('Facebook login error:', err.response?.data || err.message);
+        res.status(500).json({ message: 'Facebook login failed' });
     }
 };
