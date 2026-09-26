@@ -7,6 +7,9 @@ dotenv.config();
 
 const app = express();
 
+// Disable X-Powered-By header to prevent information leakage
+app.disable('x-powered-by');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
