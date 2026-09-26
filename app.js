@@ -15,6 +15,12 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
+// Enforce HTTP Strict Transport Security (HSTS)
+app.use((req, res, next) => {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    next();
+});
+
 // Improve mongoose debug & connection handling
 mongoose.set('strictQuery', false);
 
