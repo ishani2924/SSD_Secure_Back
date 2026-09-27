@@ -70,6 +70,8 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
+// VULNERABILITY 7: Broken Access Control (IDOR) - No verification that user has permission to access case
+// FIX: Add check to verify user is the assigned officer, part of assigned team, or admin before allowing access
 // GET /api/cases/:caseId - Get specific case
 router.get('/:caseId', authMiddleware, async (req, res) => {
     try {
@@ -244,6 +246,8 @@ router.put('/:caseId/assign', authMiddleware, async (req, res) => {
     }
 });
 
+// VULNERABILITY 7: Broken Access Control (IDOR) - No verification that user owns the case they're editing
+// FIX: Add check to verify user is the assigned officer or admin before allowing investigation updates
 // PUT /api/cases/:caseId/investigation - Add investigation findings
 router.put('/:caseId/investigation', authMiddleware, async (req, res) => {
     try {
@@ -298,6 +302,8 @@ router.put('/:caseId/investigation', authMiddleware, async (req, res) => {
     }
 });
 
+// VULNERABILITY 7: Broken Access Control (IDOR) - No verification that user owns the case they're resolving
+// FIX: Add check to verify user is the assigned officer or admin before allowing case resolution
 // PUT /api/cases/:caseId/resolve - Resolve case
 router.put('/:caseId/resolve', authMiddleware, async (req, res) => {
     try {

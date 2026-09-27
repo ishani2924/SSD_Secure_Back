@@ -2,9 +2,30 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
-// Generate JWT Token
+// Generate JWT Token (1 hour expiry - security fix)
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+};
+
+// Generate refresh token (7 days)
+const generateRefreshToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
+};
+
+// Helper: set auth cookies
+const setAuthCookies = (res, token, refreshToken) => {
+    res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',  // 'lax' required for OAuth redirect flows (strict blocks cross-site top-level nav)
+        maxAge: 3600000 // 1 hour
+    });
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',  // 'lax' required for OAuth redirect flows
+        maxAge: 604800000 // 7 days
+    });
 };
 
 // @desc    Register a new user
@@ -12,9 +33,7 @@ const generateToken = (id) => {
 // @access  Public
 exports.register = async (req, res) => {
     const { name, email, password, phone, location } = req.body;
-
     try {
-        // Basic input validation
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Name, email and password are required' });
         }
@@ -37,29 +56,18 @@ exports.register = async (req, res) => {
                 lat >= -90 && lat <= 90 &&
                 lng >= -180 && lng <= 180
             ) {
-                locationPayload = {
-                    type: 'Point',
-                    coordinates: [lng, lat]
-                };
+                locationPayload = { type: 'Point', coordinates: [lng, lat] };
             }
         }
 
-        user = await User.create({
-            name,
-            email,
-            password,
-            phone,
-            location: locationPayload
-        });
+        user = await User.create({ name, email, password, phone, location: locationPayload });
+
+        const token = generateToken(user._id);
+        const refreshToken = generateRefreshToken(user._id);
+        setAuthCookies(res, token, refreshToken);
 
         res.status(201).json({
-            token: generateToken(user._id),
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
+            user: { id: user._id, name: user.name, email: user.email, role: user.role }
         });
     } catch (err) {
         console.error('Register error:', err);
@@ -67,12 +75,11 @@ exports.register = async (req, res) => {
     }
 };
 
-// @desc    Authenticate user & get token
+// @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
 exports.login = async (req, res) => {
     const { email, password } = req.body;
-
     try {
         if (!email || !password) {
             return res.status(400).json({ message: 'Email and password are required' });
@@ -81,20 +88,17 @@ exports.login = async (req, res) => {
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        const token = generateToken(user._id);
+        const refreshToken = generateRefreshToken(user._id);
+        setAuthCookies(res, token, refreshToken);
+
         res.json({
-            token: generateToken(user._id),
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            }
+            user: { id: user._id, name: user.name, email: user.email, role: user.role }
         });
     } catch (err) {
         console.error('Login error:', err);
@@ -108,20 +112,12 @@ exports.login = async (req, res) => {
 exports.updateRole = async (req, res) => {
     const { role } = req.body;
     const validRoles = ['CITIZEN', 'OFFICER', 'ADMIN'];
-
     if (!role || !validRoles.includes(role)) {
         return res.status(400).json({ message: `Role must be one of: ${validRoles.join(', ')}` });
     }
-
     try {
-        const user = await User.findByIdAndUpdate(
-            req.params.id,
-            { role },
-            { new: true }
-        ).select('-password');
-
+        const user = await User.findByIdAndUpdate(req.params.id, { role }, { new: true }).select('-password');
         if (!user) return res.status(404).json({ message: 'User not found' });
-
         res.json({ message: 'Role updated successfully', user });
     } catch (err) {
         console.error('UpdateRole error:', err);
@@ -152,6 +148,49 @@ exports.getProfile = async (req, res) => {
     } catch (err) {
         console.error('GetProfile error:', err);
         res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Private
+exports.logout = async (req, res) => {
+    try {
+        res.clearCookie('token');
+        res.clearCookie('refreshToken');
+        res.json({ message: 'Logged out successfully' });
+    } catch (err) {
+        console.error('Logout error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+// ============================================================
+// [NEW FEATURE] Google OAuth Callback
+// @desc    Called by Google after user authorises WildSafe.
+//          Sets JWT cookies and redirects user to the dashboard.
+// @route   GET /api/auth/google/callback
+// @access  Public (called by Google)
+// ============================================================
+exports.googleCallback = (req, res) => {
+    try {
+        const user = req.user;
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+
+        if (!user) {
+            return res.redirect(frontendUrl + '/login?error=GoogleAuthFailed');
+        }
+
+        const token = generateToken(user._id);
+        const refreshToken = generateRefreshToken(user._id);
+        setAuthCookies(res, token, refreshToken);
+
+        // Redirect user to dashboard on successful Google login
+        res.redirect(frontendUrl + '/dashboard?login=success');
+    } catch (err) {
+        console.error('Google Callback Error:', err);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        res.redirect(frontendUrl + '/login?error=ServerError');
     }
 };
 
