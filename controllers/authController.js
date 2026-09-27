@@ -172,12 +172,19 @@ exports.facebookLogin = async (req, res) => {
             return res.status(400).json({ message: 'Invalid Facebook token for this user' });
         }
         
-        let user = await User.findOne({ email: data.email });
+        let user;
+        if (data.email) {
+            user = await User.findOne({ email: data.email });
+        }
+        
+        if (!user) {
+            user = await User.findOne({ facebookId: data.id });
+        }
         
         if (!user) {
             user = await User.create({
-                name: data.name,
-                email: data.email,
+                name: data.name || 'Facebook User',
+                email: data.email || `${data.id}@facebook.local`,
                 facebookId: data.id,
                 // password is not required and will be empty
             });
@@ -198,6 +205,7 @@ exports.facebookLogin = async (req, res) => {
         });
     } catch (err) {
         console.error('Facebook login error:', err.response?.data || err.message);
-        res.status(500).json({ message: 'Facebook login failed' });
+        const errorDetail = err.response?.data?.error?.message || err.message;
+        res.status(500).json({ message: 'Facebook login failed', error: errorDetail });
     }
 };
