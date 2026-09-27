@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const corsOptions = require('./middleware/corsConfig');
+const { apiLimiter } = require('./middleware/rateLimiters');
 const dotenv = require('dotenv');
 
 dotenv.config();
@@ -12,6 +13,9 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
+
+// Shared cap for every API route. Login and register add a stricter cap of their own.
+app.use('/api', apiLimiter);
 
 // Improve mongoose debug & connection handling
 mongoose.set('strictQuery', false);
