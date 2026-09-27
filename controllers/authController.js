@@ -10,10 +10,14 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @access  Public
 exports.register = async (req, res) => {
-    const { name, email, password, phone, location } = req.body;
+    // An object such as { "$gt": "" } is a MongoDB operator, not a credential.
+    const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : undefined;
+    const { location } = req.body || {};
 
     try {
-        // Basic input validation
         if (!name || !email || !password) {
             return res.status(400).json({ message: 'Name, email and password are required' });
         }
@@ -70,7 +74,8 @@ exports.register = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
 
     try {
         if (!email || !password) {

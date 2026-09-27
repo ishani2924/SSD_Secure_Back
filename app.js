@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const corsOptions = require('./middleware/corsConfig');
+const sanitizeInput = require('./middleware/sanitizeInput');
 const { apiLimiter } = require('./middleware/rateLimiters');
 const dotenv = require('dotenv');
 
@@ -12,6 +13,8 @@ const app = express();
 // Middleware — only the frontend origins in corsConfig may call this API
 app.use(cors(corsOptions));
 app.use(express.json());
+// Drop MongoDB operators and HTML before any route reads the request.
+app.use(sanitizeInput);
 app.use('/uploads', express.static('uploads'));
 
 // Shared cap for every API route. Login and register add a stricter cap of their own.
