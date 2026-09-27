@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+﻿const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
@@ -14,10 +14,8 @@ const userSchema = new mongoose.Schema({
         trim: true,
         lowercase: true
     },
-    password: {
-        type: String,
-        required: true
-    },
+    password: { type: String },
+    googleId: { type: String, unique: true, sparse: true },
     role: {
         type: String,
         enum: ['CITIZEN', 'OFFICER', 'ADMIN'],
@@ -63,3 +61,4 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
 };
 
 module.exports = mongoose.model('User', userSchema);
+
