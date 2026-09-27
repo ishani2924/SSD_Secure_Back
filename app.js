@@ -1,12 +1,61 @@
-const express = require('express');
+﻿const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const helmet = require('helmet'); // [SECURITY FIX] Helmet for HTTP security headers
 
 dotenv.config();
 
 const app = express();
+
+// ============================================================
+// [SECURITY FIX - Vulnerability 1] Content Security Policy (CSP)
+// REASON: Without CSP, browsers will execute any script injected
+// by an attacker (XSS). This header tells the browser to ONLY
+// load resources from trusted, explicitly listed sources.
+// ZAP Alert: "Content Security Policy (CSP) Header Not Set"
+// ============================================================
+app.use(
+  helmet.contentSecurityPolicy({
+    useDefaults: true,
+    directives: {
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'"],
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "img-src": ["'self'", "data:", "https://images.unsplash.com", "blob:"],
+      "connect-src": [
+        "'self'",
+        process.env.FRONTEND_URL || "http://localhost:5173",
+        "http://localhost:5000"
+      ],
+      "font-src": ["'self'", "https://fonts.gstatic.com"],
+      "frame-ancestors": ["'none'"],
+    },
+  })
+);
+
+// ============================================================
+// [SECURITY FIX - Vulnerability 2] Anti-Clickjacking (X-Frame-Options)
+// REASON: Without this, attackers can embed your app in an iframe
+// on a malicious website and trick users into clicking hidden buttons.
+// ZAP Alert: "Missing Anti-clickjacking Header"
+// ============================================================
+app.use(helmet.frameguard({ action: 'deny' }));
+
+// ============================================================
+// [SECURITY FIX - Vulnerability 3] Hide X-Powered-By Header
+// REASON: Exposing "X-Powered-By: Express" tells attackers exactly
+// what server software is running, making targeted attacks easier.
+// ============================================================
+app.use(helmet.hidePoweredBy());
+
+// ============================================================
+// [SECURITY FIX - Vulnerability 4] X-Content-Type-Options
+// REASON: Prevents browsers from MIME-sniffing a response away
+// from the declared content-type, blocking drive-by downloads.
+// ============================================================
+app.use(helmet.noSniff());
 
 // Middleware
 app.use(cors({
