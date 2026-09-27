@@ -1,12 +1,20 @@
+/**
+ * Auth middleware — session validation and refresh.
+ *
+ * [SECURITY FIX — Vulnerability 6: Token leakage] FIXED
+ * Reads JWT from httpOnly cookies first (not from URL/query). Authorization header kept
+ * only for backward compatibility with API clients/tests.
+ *
+ * [SECURITY FIX — Vulnerability 8: Weak JWT / hardcoded secrets] FIXED
+ * Secrets and expiries come from config/jwt.js (.env). Expired access tokens trigger
+ * refresh via a separate refresh cookie and short-lived re-issued access token.
+ */
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { getJwtOptions, signAccessToken } = require('../config/jwt');
 
-// VULNERABILITY 8: Weak JWT Implementation - No token expiration validation beyond basic JWT verification
-// FIX: Implement token refresh mechanism and shorter expiration times for access tokens
-// VULNERABILITY 6: Sensitive Information in URL (Token Leakage) - Fixed by using httpOnly cookies instead of localStorage
 const authMiddleware = async (req, res, next) => {
     try {
-        // Try to get token from httpOnly cookie first
         let token = req.cookies.token;
 
         // Fallback to Authorization header for backward compatibility
@@ -18,7 +26,8 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ message: 'No token, authorization denied' });
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const { secret } = getJwtOptions();
+        const decoded = jwt.verify(token, secret);
         const user = await User.findById(decoded.id).select('-password');
 
         if (!user) {
@@ -35,22 +44,21 @@ const authMiddleware = async (req, res, next) => {
         // If token expired, try to refresh it
         if (err.name === 'TokenExpiredError' && req.cookies.refreshToken) {
             try {
-                const decoded = jwt.verify(req.cookies.refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+                const { refreshSecret, accessCookieMaxAge } = getJwtOptions();
+                const decoded = jwt.verify(req.cookies.refreshToken, refreshSecret);
                 const user = await User.findById(decoded.id).select('-password');
 
                 if (!user || user.status !== 'ACTIVE') {
                     return res.status(401).json({ message: 'Token is not valid' });
                 }
 
-                // Generate new access token
-                const newToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+                const newToken = signAccessToken(user._id);
 
-                // Set new cookie
                 res.cookie('token', newToken, {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === 'production',
                     sameSite: 'strict',
-                    maxAge: 3600000 // 1 hour
+                    maxAge: accessCookieMaxAge
                 });
 
                 req.user = user;

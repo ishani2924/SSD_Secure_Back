@@ -6,6 +6,10 @@ const User = require('../models/User');
 const Team = require('../models/Team');
 const { authMiddleware } = require('../middleware/auth');
 const { createNotification } = require('../controllers/notificationController');
+const { canViewCase, canModifyCase, denyCaseAccess, isAdmin, userIdString } = require('../utils/caseAccess');
+
+// [SECURITY FIX — Vulnerability 7] IDOR mitigations: canViewCase / canModifyCase on GET and PUT;
+// admin-only assign & close; officers may only list their own assigned cases.
 
 const getCaseAssignmentNotificationPayload = (caseDoc, assignmentNotes) => ({
     title: `New Case Assigned: ${caseDoc.caseId}`,
@@ -70,8 +74,6 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 });
 
-// VULNERABILITY 7: Broken Access Control (IDOR) - No verification that user has permission to access case
-// FIX: Add check to verify user is the assigned officer, part of assigned team, or admin before allowing access
 // GET /api/cases/:caseId - Get specific case
 router.get('/:caseId', authMiddleware, async (req, res) => {
     try {
@@ -87,6 +89,10 @@ router.get('/:caseId', authMiddleware, async (req, res) => {
         
         if (!case_) {
             return res.status(404).json({ message: 'Case not found' });
+        }
+
+        if (!(await canViewCase(req.user, case_))) {
+            return denyCaseAccess(res);
         }
 
         res.json(case_);
@@ -186,6 +192,10 @@ router.post('/', authMiddleware, async (req, res) => {
 // PUT /api/cases/:caseId/assign - Assign case to officer/team
 router.put('/:caseId/assign', authMiddleware, async (req, res) => {
     try {
+        if (!isAdmin(req.user)) {
+            return res.status(403).json({ message: 'Only admins can assign cases' });
+        }
+
         const { officerId, teamId, assignmentNotes } = req.body;
 
         if (!officerId && !teamId) {
@@ -246,8 +256,6 @@ router.put('/:caseId/assign', authMiddleware, async (req, res) => {
     }
 });
 
-// VULNERABILITY 7: Broken Access Control (IDOR) - No verification that user owns the case they're editing
-// FIX: Add check to verify user is the assigned officer or admin before allowing investigation updates
 // PUT /api/cases/:caseId/investigation - Add investigation findings
 router.put('/:caseId/investigation', authMiddleware, async (req, res) => {
     try {
@@ -257,6 +265,10 @@ router.put('/:caseId/investigation', authMiddleware, async (req, res) => {
         
         if (!case_) {
             return res.status(404).json({ message: 'Case not found' });
+        }
+
+        if (!(await canModifyCase(req.user, case_))) {
+            return denyCaseAccess(res);
         }
 
         if (findings) {
@@ -302,8 +314,6 @@ router.put('/:caseId/investigation', authMiddleware, async (req, res) => {
     }
 });
 
-// VULNERABILITY 7: Broken Access Control (IDOR) - No verification that user owns the case they're resolving
-// FIX: Add check to verify user is the assigned officer or admin before allowing case resolution
 // PUT /api/cases/:caseId/resolve - Resolve case
 router.put('/:caseId/resolve', authMiddleware, async (req, res) => {
     try {
@@ -313,6 +323,10 @@ router.put('/:caseId/resolve', authMiddleware, async (req, res) => {
         
         if (!case_) {
             return res.status(404).json({ message: 'Case not found' });
+        }
+
+        if (!(await canModifyCase(req.user, case_))) {
+            return denyCaseAccess(res);
         }
 
         case_.resolution = {
@@ -348,6 +362,10 @@ router.put('/:caseId/resolve', authMiddleware, async (req, res) => {
 // PUT /api/cases/:caseId/close - Close case (admin only)
 router.put('/:caseId/close', authMiddleware, async (req, res) => {
     try {
+        if (!isAdmin(req.user)) {
+            return res.status(403).json({ message: 'Only admins can close cases' });
+        }
+
         const case_ = await Case.findOne({ caseId: req.params.caseId });
         
         if (!case_) {
@@ -444,6 +462,11 @@ router.get('/stats/overview', authMiddleware, async (req, res) => {
 // GET /api/cases/assigned/:officerId - Get cases assigned to specific officer
 router.get('/assigned/:officerId', authMiddleware, async (req, res) => {
     try {
+        const requesterId = userIdString(req.user);
+        if (!isAdmin(req.user) && req.params.officerId !== requesterId) {
+            return res.status(403).json({ message: 'Access denied: cannot view another officer\'s assigned cases' });
+        }
+
         const { status, page = 1, limit = 10 } = req.query;
         
         const filter = { assignedOfficer: req.params.officerId };

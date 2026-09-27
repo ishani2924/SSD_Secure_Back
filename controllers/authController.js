@@ -1,17 +1,12 @@
 const User = require('../models/User');
-const jwt = require('jsonwebtoken');
+const { getJwtOptions, signAccessToken, signRefreshToken } = require('../config/jwt');
 
-// VULNERABILITY 8: Weak JWT Implementation - Token expiration is too long (30 days)
-// FIX: Reduce token expiration to a shorter duration (e.g., 1 hour for access tokens)
-// Generate JWT Token
-const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-};
-
-// Generate refresh token (longer expiration)
-const generateRefreshToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
-};
+/**
+ * [SECURITY FIX — Vulnerability 6] FIXED: Tokens issued as httpOnly, Secure (prod), SameSite cookies —
+ * not returned in JSON or URL redirects, reducing leakage and XSS token theft.
+ *
+ * [SECURITY FIX — Vulnerability 8] FIXED: Signing uses config/jwt.js (env secrets, JWT_EXPIRES_IN / JWT_REFRESH_EXPIRES_IN).
+ */
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -58,22 +53,22 @@ exports.register = async (req, res) => {
             location: locationPayload
         });
 
-        const token = generateToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        const jwtOptions = getJwtOptions();
+        const token = signAccessToken(user._id);
+        const refreshToken = signRefreshToken(user._id);
 
-        // Set httpOnly cookies
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 3600000 // 1 hour
+            maxAge: jwtOptions.accessCookieMaxAge
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 604800000 // 7 days
+            maxAge: jwtOptions.refreshCookieMaxAge
         });
 
         res.status(201).json({
@@ -110,22 +105,22 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const token = generateToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
+        const jwtOptions = getJwtOptions();
+        const token = signAccessToken(user._id);
+        const refreshToken = signRefreshToken(user._id);
 
-        // Set httpOnly cookies
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 3600000 // 1 hour
+            maxAge: jwtOptions.accessCookieMaxAge
         });
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 604800000 // 7 days
+            maxAge: jwtOptions.refreshCookieMaxAge
         });
 
         res.json({

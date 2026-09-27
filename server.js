@@ -1,8 +1,11 @@
 const app = require('./app');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const { validateJwtEnv } = require('./config/jwt');
 
 dotenv.config();
+// [SECURITY FIX — Vulnerability 8] Fail fast if JWT secrets are missing from .env
+validateJwtEnv();
 
 const PORT = process.env.PORT || 5000;
 
