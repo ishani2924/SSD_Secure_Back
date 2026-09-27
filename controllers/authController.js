@@ -1,4 +1,4 @@
-﻿const User = require('../models/User');
+const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
 // Generate JWT Token (1 hour expiry - security fix)
@@ -16,13 +16,13 @@ const setAuthCookies = (res, token, refreshToken) => {
     res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',  // 'lax' required for OAuth redirect flows (strict blocks cross-site top-level nav)
         maxAge: 3600000 // 1 hour
     });
     res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',  // 'lax' required for OAuth redirect flows
         maxAge: 604800000 // 7 days
     });
 };
