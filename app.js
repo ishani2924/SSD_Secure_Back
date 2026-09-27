@@ -1,14 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const corsOptions = require('./middleware/corsConfig');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Middleware — only the frontend origins in corsConfig may call this API
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
