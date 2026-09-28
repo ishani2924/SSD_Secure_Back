@@ -1,4 +1,12 @@
 const User = require('../models/User');
+const { getJwtOptions, signAccessToken, signRefreshToken } = require('../config/jwt');
+
+/**
+ * [SECURITY FIX — Vulnerability 6] FIXED: Tokens issued as httpOnly, Secure (prod), SameSite cookies —
+ * not returned in JSON or URL redirects, reducing leakage and XSS token theft.
+ *
+ * [SECURITY FIX — Vulnerability 8] FIXED: Signing uses config/jwt.js (env secrets, JWT_EXPIRES_IN / JWT_REFRESH_EXPIRES_IN).
+ */
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 
@@ -67,6 +75,23 @@ exports.register = async (req, res) => {
 
         user = await User.create({ name, email, password, phone, location: locationPayload });
 
+        const jwtOptions = getJwtOptions();
+        const token = signAccessToken(user._id);
+        const refreshToken = signRefreshToken(user._id);
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: jwtOptions.accessCookieMaxAge
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: jwtOptions.refreshCookieMaxAge
+        });
         const token = generateToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
         setAuthCookies(res, token, refreshToken);
@@ -99,6 +124,23 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        const jwtOptions = getJwtOptions();
+        const token = signAccessToken(user._id);
+        const refreshToken = signRefreshToken(user._id);
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: jwtOptions.accessCookieMaxAge
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: jwtOptions.refreshCookieMaxAge
+        });
         const token = generateToken(user._id);
         const refreshToken = generateRefreshToken(user._id);
         setAuthCookies(res, token, refreshToken);
