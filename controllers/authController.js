@@ -1,9 +1,16 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 
+// VULNERABILITY 8: Weak JWT Implementation - Token expiration is too long (30 days)
+// FIX: Reduce token expiration to a shorter duration (e.g., 1 hour for access tokens)
 // Generate JWT Token
 const generateToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+};
+
+// Generate refresh token (longer expiration)
+const generateRefreshToken = (id) => {
+    return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, { expiresIn: '7d' });
 };
 
 // @desc    Register a new user
@@ -55,8 +62,25 @@ exports.register = async (req, res) => {
             location: locationPayload
         });
 
+        const token = generateToken(user._id);
+        const refreshToken = generateRefreshToken(user._id);
+
+        // Set httpOnly cookies
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 3600000 // 1 hour
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 604800000 // 7 days
+        });
+
         res.status(201).json({
-            token: generateToken(user._id),
             user: {
                 id: user._id,
                 name: user.name,
@@ -91,8 +115,25 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
+        const token = generateToken(user._id);
+        const refreshToken = generateRefreshToken(user._id);
+
+        // Set httpOnly cookies
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 3600000 // 1 hour
+        });
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 604800000 // 7 days
+        });
+
         res.json({
-            token: generateToken(user._id),
             user: {
                 id: user._id,
                 name: user.name,
@@ -155,6 +196,20 @@ exports.getProfile = async (req, res) => {
         res.json(user);
     } catch (err) {
         console.error('GetProfile error:', err);
+        res.status(500).json({ message: 'Server error', error: err.message });
+    }
+};
+
+// @desc    Logout user / clear cookie
+// @route   POST /api/auth/logout
+// @access  Private
+exports.logout = async (req, res) => {
+    try {
+        res.clearCookie('token');
+        res.clearCookie('refreshToken');
+        res.json({ message: 'Logged out successfully' });
+    } catch (err) {
+        console.error('Logout error:', err);
         res.status(500).json({ message: 'Server error', error: err.message });
     }
 };
