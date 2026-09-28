@@ -36,4 +36,4 @@ Below is a summary of the vulnerabilities identified in the original project and
 * **Details:** Implemented Google Login using `passport-google-oauth20` to securely handle user identity verification. A dedicated route redirects users to Google's consent screen. Upon a successful callback, the backend validates the OpenID profile and issues a JSON Web Token (JWT) combined with HTTP-only secure cookies.
 
 ---
-*Note: Please update the placeholders (in brackets) with your actual team details, links, and specific project vulnerabilities.*
+
