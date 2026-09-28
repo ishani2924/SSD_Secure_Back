@@ -69,8 +69,6 @@ const app = express();
 // Fix 1: Disable X-Powered-By header to prevent information leakage
 app.disable('x-powered-by');
 
-// Fix 1: Disable X-Powered-By header to prevent information leakage
-app.disable('x-powered-by');
 
 // ============================================================
 // [SECURITY FIX - Vulnerability 1] Content Security Policy (CSP)
