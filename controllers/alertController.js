@@ -2,6 +2,7 @@ const Alert = require('../models/Alert');
 const User = require('../models/User');
 const SmartAlertService = require('../services/smartAlertService');
 const AwarenessContent = require('../models/awareness/AwarenessContent');
+const { queryText } = require('../middleware/sanitizeInput');
 
 const VALID_ALERT_TYPES = ['fire', 'poaching', 'illegal-logging', 'weather', 'general'];
 const AWARENESS_GUIDELINE_LIMIT = 2;
@@ -158,7 +159,9 @@ async function getAwarenessForAlertType(alertType, awarenessIds = []) {
 // Get all alerts for the logged-in user
 exports.getAlerts = async (req, res) => {
   try {
-    const { category, priority, limit = 50, page = 1 } = req.query;
+    const category = queryText(req.query.category);
+    const priority = queryText(req.query.priority);
+    const { limit = 50, page = 1 } = req.query;
 
     // Build filter for alerts targeting user's role
     const filter = {
@@ -492,7 +495,10 @@ exports.sendAnnouncement = async (req, res) => {
 // Get all alerts (admin only)
 exports.getAllAlerts = async (req, res) => {
   try {
-    const { category, priority, createdBy, limit = 50, page = 1 } = req.query;
+    const category = queryText(req.query.category);
+    const priority = queryText(req.query.priority);
+    const createdBy = queryText(req.query.createdBy);
+    const { limit = 50, page = 1 } = req.query;
 
     const filter = {};
     if (category) filter.category = category;
