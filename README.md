@@ -25,15 +25,15 @@ Below is a summary of the vulnerabilities identified in the original project and
 
 | Vulnerability Type | Location/Description in Original Project | Implemented Fix |
 | :--- | :--- | :--- |
-| **Cross-Site Scripting (XSS)** | [Explain where XSS was possible, e.g., user input reflecting on UI without sanitization] | [Explain the fix, e.g., added input sanitization, encoding, etc.] |
-| **Injection (SQL/NoSQL)** | [Explain the injection point] | [Explain the fix, e.g., parameterized queries, ORM usage] |
-| **Broken Authentication** | [Explain issues with login/session management] | [Explain the fix, and mention the OAuth/Open ID connect integration here] |
-| **Cross-Site Request Forgery (CSRF)** | [Explain where CSRF was possible] | [Explain the fix, e.g., added CSRF tokens] |
-| **Insecure Direct Object Reference (IDOR)** | [Explain the IDOR vulnerability] | [Explain the fix, e.g., proper access control checks before data retrieval] |
-| **Security Misconfiguration** | [Explain misconfigurations, e.g., default passwords, open CORS] | [Explain the fix] |
+| **Cross-Site Scripting (XSS)** | User inputs in forms (e.g., incident reporting, registration) were directly processed and reflected on the frontend without proper sanitization. | Added the `xss` library to sanitize user inputs on the backend. Implemented Content Security Policy (CSP) headers using `helmet` to prevent execution of unauthorized scripts on the client-side. |
+| **Injection (NoSQL)** | Authentication routes (`/login`, `/register`) were vulnerable to NoSQL injection because they accepted objects (e.g., MongoDB operators like `{"$gt": ""}`) as valid credentials. | Added strict type checking (e.g., verifying `typeof req.body.email === 'string'`) in `authController.js` and introduced a `sanitizeInput` middleware to automatically strip MongoDB query operators (`$`) from incoming requests. |
+| **Broken Authentication** | The login and registration endpoints lacked rate limiting, making them vulnerable to brute-force attacks. | Applied `express-rate-limit` (`authLimiter`) to authentication routes to throttle excessive requests. Integrated Google OAuth 2.0 (OpenID Connect) for secure, delegated authentication. |
+| **Cross-Site Request Forgery (CSRF)** | Sensitive API endpoints were exposed to cross-origin requests because CORS was too permissive and cookies lacked security attributes. | Configured strict CORS policies (whitelisting only the frontend domain), set secure cookie attributes (`sameSite: 'lax'`, `secure: true`), and relied on secure JWT authorization headers. |
+| **Insecure Direct Object Reference (IDOR)** | API endpoints returning sensitive data did not always adequately verify if the requesting user had ownership or admin rights. | Strengthened `authMiddleware` and `roleMiddleware` to ensure users can only access their own data, and restricted sensitive management routes strictly to authorized roles (e.g., admins or rangers). |
+| **Security Misconfiguration** | The server leaked its tech stack via the `X-Powered-By` header, lacked Anti-Clickjacking headers, and did not enforce HTTPS. | Integrated `helmet` to remove `X-Powered-By`, added `X-Frame-Options` (`frameguard`) to prevent clickjacking, applied `X-Content-Type-Options: nosniff`, and enforced HTTP Strict Transport Security (HSTS). |
 
 ### OAuth / OpenID Connect Implementation
-* **Details:** [Provide a brief description of how and where OAuth/OpenID Connect was implemented in the project, e.g., Google/GitHub Login integrated using Passport.js or a specific AuthContext.]
+* **Details:** Implemented Google Login using `passport-google-oauth20` to securely handle user identity verification. A dedicated route redirects users to Google's consent screen. Upon a successful callback, the backend validates the OpenID profile and issues a JSON Web Token (JWT) combined with HTTP-only secure cookies.
 
 ---
 *Note: Please update the placeholders (in brackets) with your actual team details, links, and specific project vulnerabilities.*
