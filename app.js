@@ -1,4 +1,4 @@
-﻿// ── MUST be first: load .env before any process.env references ──
+// ── MUST be first: load .env before any process.env references ──
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -11,6 +11,9 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const session = require('express-session');
 const User = require('./models/User');
+const corsOptions = require('./middleware/corsConfig');
+const sanitizeInput = require('./middleware/sanitizeInput');
+const { apiLimiter } = require('./middleware/rateLimiters');
 
 // ============================================================
 // [NEW FEATURE] Google OAuth Strategy Configuration
@@ -69,7 +72,6 @@ const app = express();
 // Fix 1: Disable X-Powered-By header to prevent information leakage
 app.disable('x-powered-by');
 
-
 // ============================================================
 // [SECURITY FIX - Vulnerability 1] Content Security Policy (CSP)
 // ZAP Alert: "Content Security Policy (CSP) Header Not Set"
@@ -116,13 +118,12 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Standard middleware
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true
-}));
+// Middleware — only the frontend origins in corsConfig may call this API
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+// Drop MongoDB operators and HTML before any route reads the request.
+app.use(sanitizeInput);
 app.use('/uploads', express.static('uploads'));
 
 // Fix 2: Enforce HTTP Strict Transport Security (HSTS)
@@ -131,12 +132,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// Fix 2: Enforce HTTP Strict Transport Security (HSTS)
-app.use((req, res, next) => {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-    next();
-});
+// Shared cap for every API route. Login and register add a stricter cap of their own.
+app.use('/api', apiLimiter);
 
+// Improve mongoose debug & connection handling
 mongoose.set('strictQuery', false);
 
 // Routes

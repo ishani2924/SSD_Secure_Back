@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const {
@@ -11,10 +11,11 @@ const {
     googleCallback
 } = require('../controllers/authController');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiters');
 
 // ── Existing Auth Routes ──────────────────────────────────────
-router.post('/register', register);
-router.post('/login', login);
+router.post('/register', authLimiter, register);
+router.post('/login', authLimiter, login);
 router.post('/logout', authMiddleware, logout);
 router.post('/facebook', facebookLogin);
 router.get('/profile', authMiddleware, getProfile);

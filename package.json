@@ -47,7 +47,8 @@
     "openai": "^4.28.4",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "twilio": "^5.12.2"
+    "twilio": "^5.12.2",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "autocannon": "^8.0.0",
