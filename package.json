@@ -43,7 +43,8 @@
     "multer-storage-cloudinary": "^4.0.0",
     "nodemailer": "^8.0.1",
     "openai": "^4.28.4",
-    "twilio": "^5.12.2"
+    "twilio": "^5.12.2",
+    "xss": "^1.0.15"
   },
   "devDependencies": {
     "autocannon": "^8.0.0",

@@ -1,6 +1,7 @@
 const AwarenessContent = require('../models/awareness/AwarenessContent');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { pickAllowed, queryText } = require('../middleware/sanitizeInput');
 const AWARENESS_GUIDELINE_LIMIT = 2;
 
 const DEFAULT_AWARENESS_BY_TYPE = {
@@ -160,7 +161,8 @@ exports.createAwareness = async (req, res) => {
 // -------------------------------------------------------
 exports.getActiveContent = async (req, res) => {
     try {
-        const { category, limit = 50, page = 1 } = req.query;
+        const category = queryText(req.query.category);
+        const { limit = 50, page = 1 } = req.query;
 
         const filter = { isActive: true };
         if (category) filter.category = category;
@@ -342,10 +344,15 @@ exports.getAwarenessById = async (req, res) => {
 exports.updateAwareness = async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
-
-        // Prevent overwriting createdBy
-        delete updates.createdBy;
+        const updates = pickAllowed(req.body, [
+            'title',
+            'content',
+            'category',
+            'triggers',
+            'locations',
+            'isActive',
+            'schedule'
+        ]);
 
         const item = await AwarenessContent.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
 

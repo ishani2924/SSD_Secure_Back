@@ -2,20 +2,25 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const corsOptions = require('./middleware/corsConfig');
+const sanitizeInput = require('./middleware/sanitizeInput');
+const { apiLimiter } = require('./middleware/rateLimiters');
 const dotenv = require('dotenv');
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true // Enable credentials for cookies
-}));
+// Middleware — only the frontend origins in corsConfig may call this API
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
+// Drop MongoDB operators and HTML before any route reads the request.
+app.use(sanitizeInput);
 app.use('/uploads', express.static('uploads'));
+
+// Shared cap for every API route. Login and register add a stricter cap of their own.
+app.use('/api', apiLimiter);
 
 // Improve mongoose debug & connection handling
 mongoose.set('strictQuery', false);

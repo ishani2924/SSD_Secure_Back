@@ -1,5 +1,6 @@
 const Incident = require('../models/Incident');
 const { createNotification, notifyByRole } = require('./notificationController');
+const { queryText } = require('../middleware/sanitizeInput');
 
 // @desc    Create a new incident report
 // @route   POST /api/incidents
@@ -116,7 +117,9 @@ exports.getIncidentById = async (req, res) => {
 // @access  Private (Officer/Admin)
 exports.getAllIncidents = async (req, res) => {
     try {
-        const { status, category, priority } = req.query;
+        const status = queryText(req.query.status);
+        const category = queryText(req.query.category);
+        const priority = queryText(req.query.priority);
         let query = {};
 
         if (status) query.status = status;
