@@ -16,7 +16,7 @@
   * Backend: https://github.com/ishani2924/SSD_Secure_Back
 
 ## 3. Video Presentation
-* **YouTube Video Link:** [YouTube Link] 
+* **YouTube Video Link:** https://youtu.be/W5c5BX1RgK4 
   * *Description:* This video describes the vulnerabilities found, the fixes implemented, and the OAuth/Open ID connect implementation.
 
 ## 4. Project Vulnerabilities & Fixes
