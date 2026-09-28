@@ -1,16 +1,19 @@
 # SSD Assignment - Secure Web Application
+**Group - 68**
 
 ## 1. Team Members
-* [R A D P Ranathunga] - [IT23217386]
-* [D H L N Jayalath] - [IT23202368]
-* [N G N Tharuka] - [IT23157200]
-* [J M U I Jayasundara] - [IT23233676]
+* R A D P Ranathunga - IT23217386
+* D H L N Jayalath - IT23202368
+* N G N Tharuka - IT23157200
+* J M U I Jayasundara - IT23233676
 
 ## 2. Project Links
 * **Original Project Repository:** 
   * Web: https://github.com/Daniru12/WildSafe-web
   * Backend: https://github.com/Daniru12/WildSafe-back
-* **Modified Project Repository:** [Github Link to Modified Project]
+* **Modified Project Repository:** 
+  * Web: https://github.com/ishani2924/SSD_Secure_Web
+  * Backend: https://github.com/ishani2924/SSD_Secure_Back
 
 ## 3. Video Presentation
 * **YouTube Video Link:** [YouTube Link] 
