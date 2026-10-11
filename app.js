@@ -19,43 +19,45 @@ const { apiLimiter } = require('./middleware/rateLimiters');
 // [NEW FEATURE] Google OAuth Strategy Configuration
 // This runs AFTER dotenv.config() so env vars are available
 // ============================================================
-passport.use(new GoogleStrategy(
-    {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
-    },
-    async (accessToken, refreshToken, profile, done) => {
-        try {
-            // Check if user already logged in with Google before
-            let user = await User.findOne({ googleId: profile.id });
-            if (!user) {
-                const email = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null;
-                // Check if they have an existing email/password account
-                if (email) {
-                    user = await User.findOne({ email: email });
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(new GoogleStrategy(
+        {
+            clientID: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+            callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'
+        },
+        async (accessToken, refreshToken, profile, done) => {
+            try {
+                // Check if user already logged in with Google before
+                let user = await User.findOne({ googleId: profile.id });
+                if (!user) {
+                    const email = profile.emails && profile.emails.length > 0 ? profile.emails[0].value : null;
+                    // Check if they have an existing email/password account
+                    if (email) {
+                        user = await User.findOne({ email: email });
+                    }
+                    if (user) {
+                        // Link Google ID to existing account
+                        user.googleId = profile.id;
+                        await user.save();
+                    } else {
+                        // Create a brand new user from Google profile
+                        user = await User.create({
+                            name: profile.displayName || 'Google User',
+                            email: email,
+                            googleId: profile.id,
+                            status: 'ACTIVE',
+                            role: 'CITIZEN'
+                        });
+                    }
                 }
-                if (user) {
-                    // Link Google ID to existing account
-                    user.googleId = profile.id;
-                    await user.save();
-                } else {
-                    // Create a brand new user from Google profile
-                    user = await User.create({
-                        name: profile.displayName || 'Google User',
-                        email: email,
-                        googleId: profile.id,
-                        status: 'ACTIVE',
-                        role: 'CITIZEN'
-                    });
-                }
+                return done(null, user);
+            } catch (err) {
+                return done(err, null);
             }
-            return done(null, user);
-        } catch (err) {
-            return done(err, null);
         }
-    }
-));
+    ));
+}
 
 passport.serializeUser((user, done) => { done(null, user.id); });
 passport.deserializeUser(async (id, done) => {
@@ -74,6 +76,8 @@ const app = express();
 app.use(cors({
     origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://[::1]:5173'],
     credentials: true
+}));
+
 // Fix 1: Disable X-Powered-By header to prevent information leakage
 app.disable('x-powered-by');
 
