@@ -1,6 +1,7 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const passport = require('passport');
+const rateLimit = require('express-rate-limit');
 const {
     register,
     login,
@@ -12,9 +13,21 @@ const {
 } = require('../controllers/authController');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
 
+// ── [SECURITY FIX - Vulnerability 4] Auth Rate Limiter ───────
+// Prevents brute-force attacks on login and register endpoints
+const authLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute window
+    max: 5,              // max 5 requests per IP per window
+    message: {
+        message: 'Too many requests from this IP, please try again after 1 minute.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 // ── Existing Auth Routes ──────────────────────────────────────
-router.post('/register', register);
-router.post('/login', login);
+router.post('/register', authLimiter, register);
+router.post('/login', authLimiter, login);
 router.post('/logout', authMiddleware, logout);
 router.post('/facebook', facebookLogin);
 router.get('/profile', authMiddleware, getProfile);

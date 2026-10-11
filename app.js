@@ -1,4 +1,4 @@
-﻿// ── MUST be first: load .env before any process.env references ──
+// ── MUST be first: load .env before any process.env references ──
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -74,19 +74,25 @@ app.disable('x-powered-by');
 
 // ============================================================
 // [SECURITY FIX - Vulnerability 1] Content Security Policy (CSP)
-// ZAP Alert: "Content Security Policy (CSP) Header Not Set"
+// - ZAP Alert: "Content Security Policy (CSP) Header Not Set" -> Helmet CSP middleware enabled
+// - ZAP Alert: "CSP: script-src unsafe-inline" -> Fixed by removing 'unsafe-inline' from script-src
+// - ZAP Alert: "CSP: style-src unsafe-inline"  -> Fixed by removing 'unsafe-inline' from style-src
+// - ZAP Alert: "CSP: Failure to Define Directive with No Fallback" -> Fixed by explicitly defining 'base-uri', 'form-action', and 'frame-ancestors'
 // ============================================================
 app.use(
     helmet.contentSecurityPolicy({
         useDefaults: true,
         directives: {
             'default-src': ["'self'"],
-            'script-src': ["'self'", "'unsafe-inline'"],
-            'style-src': ["'self'", "'unsafe-inline'"],
+            'base-uri': ["'self'"], // FIX: Explicitly defined to prevent base-tag hijacking (Directive with No Fallback)
+            'form-action': ["'self'"], // FIX: Explicitly defined to restrict form submissions (Directive with No Fallback)
+            'frame-ancestors': ["'none'"], // FIX: Explicitly defined to prevent embedding in iframes (Anti-clickjacking & No Fallback)
+            'script-src': ["'self'"], // FIX: Removed 'unsafe-inline' to eliminate inline script execution risks
+            'style-src': ["'self'"], // FIX: Removed 'unsafe-inline' to eliminate inline style injection risks
             'img-src': ["'self'", 'data:', 'https://images.unsplash.com', 'blob:'],
             'connect-src': ["'self'", process.env.FRONTEND_URL || 'http://localhost:5173', 'http://localhost:5000'],
             'font-src': ["'self'", 'https://fonts.gstatic.com'],
-            'frame-ancestors': ["'none'"],
+            'object-src': ["'none'"], // FIX: Disallow plugins/Flash/applets
         },
     })
 );
@@ -159,6 +165,15 @@ app.use('/api/resources', require('./routes/resourceStaff/resourceRoutes'));
 // Basic health check route
 app.get('/', (req, res) => {
     res.send('WildSafe API is running...');
+});
+
+// ============================================================
+// [SECURITY FIX] Catch-all 404 Handler
+// Prevents Express internal finalhandler from overriding Helmet's CSP
+// with "default-src 'none'" on unhandled routes (e.g. /robots.txt)
+// ============================================================
+app.use((req, res) => {
+    res.status(404).json({ message: `Cannot ${req.method} ${req.originalUrl}` });
 });
 
 // Error handling middleware
