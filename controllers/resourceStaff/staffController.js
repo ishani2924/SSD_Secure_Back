@@ -1,6 +1,7 @@
 const Staff = require('../../models/resourceStaff/Staff');
 const User = require('../../models/User');
 const mongoose = require('mongoose');
+const { pickAllowed } = require('../../middleware/sanitizeInput');
 
 const createStaff = async (req, res) => {
     try {
@@ -52,7 +53,7 @@ const getStaff = async (req, res) => {
 
 const updateStaff = async (req, res) => {
     try {
-        const updates = req.body;
+        const updates = pickAllowed(req.body, ['department', 'status', 'permissions']);
         const staff = await Staff.findByIdAndUpdate(req.params.id, updates, { new: true }).populate('userId', '-password');
         if (!staff) return res.status(404).json({ message: 'Staff not found' });
         res.json(staff);

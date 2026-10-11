@@ -1,5 +1,6 @@
 const Resource = require('../models/Resource');
 const Staff = require('../models/Staff');
+const { pickAllowed, queryText } = require('../middleware/sanitizeInput');
 
 const createResource = async (req, res) => {
     try {
@@ -13,7 +14,7 @@ const createResource = async (req, res) => {
 
 const listResources = async (req, res) => {
     try {
-        const { status } = req.query;
+        const status = queryText(req.query.status);
         const filter = {};
         if (status) filter.status = status.toUpperCase();
         const resources = await Resource.find(filter).populate('assignedTo');
@@ -54,7 +55,7 @@ const assignResource = async (req, res) => {
 
 const updateResource = async (req, res) => {
     try {
-        const updates = req.body;
+        const updates = pickAllowed(req.body, ['type', 'description', 'metadata', 'status', 'assignedTo']);
         const resource = await Resource.findByIdAndUpdate(req.params.id, updates, { new: true });
         if (!resource) return res.status(404).json({ message: 'Resource not found' });
         res.json(resource);

@@ -12,6 +12,7 @@ const {
     googleCallback
 } = require('../controllers/authController');
 const { authMiddleware, roleMiddleware } = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimiters');
 
 // ── [SECURITY FIX - Vulnerability 4] Auth Rate Limiter ───────
 // Prevents brute-force attacks on login and register endpoints

@@ -10,11 +10,11 @@ beforeAll(async () => {
   if (process.env.SKIP_DB === 'true') return;
 
   try {
-    const mongoUri = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI || 'mongodb://mongodb+srv://SE:%23SE2026@se.nxqezs4.mongodb.net/AF?appName=SE&retryWrites=true&w=majority/wildsafe_test';
-    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 5000 });
+    const mongoUri = process.env.MONGODB_TEST_URI || process.env.MONGODB_URI || 'mongodb+srv://SE:%23SE2026@se.nxqezs4.mongodb.net/AF?appName=SE&retryWrites=true&w=majority';
+    await mongoose.connect(mongoUri, { serverSelectionTimeoutMS: 30000 });
     connected = true;
   } catch (err) {
-    console.warn('⚠  MongoDB not reachable – skipping DB setup (unit-test mode)');
+    console.warn('⚠  MongoDB not reachable – skipping DB setup (unit-test mode):', err.message);
   }
 });
 
