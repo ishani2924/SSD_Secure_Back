@@ -25,8 +25,9 @@ const corsOptions = {
         // browser blocks the other website from reading the response.
         callback(null, false);
     },
+    credentials: true, // Allow cookies and credentials in cross-origin requests
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     maxAge: 600
 };
 
