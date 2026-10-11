@@ -28,6 +28,16 @@ npm install --save-dev
 npm test
 ```
 
+### Run authentication and security unit tests
+```bash
+npm run test:auth
+```
+
+### Run all fast unit tests (no DB required)
+```bash
+npm run test:unit
+```
+
 ### Run tests in watch mode
 ```bash
 npm run test:watch
@@ -42,6 +52,11 @@ npm run test:coverage
 
 ### Files
 - `setup.js` - Global test setup and teardown
+- `authController.test.js` - Unit tests for auth controller (Register, Login, OAuth, RBAC)
+- `authMiddleware.test.js` - Unit tests for JWT verification, cookie/header token extraction, token refresh & RBAC
+- `authRoutes.test.js` - Route-level unit tests for Express authentication routes
+- `sanitizeInput.test.js` - Unit tests for XSS sanitization and NoSQL injection protection
+- `health.test.js` - Tests for server health endpoint and security headers (HSTS, Anti-Clickjacking, CSP)
 - `incidentController.test.js` - Tests for incident API endpoints
 - `helpers/testHelpers.js` - Utility functions for testing
 
