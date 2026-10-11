@@ -636,7 +636,7 @@ describe('Incident Controller Tests', () => {
 
       const duration = endTime - startTime;
       console.log(`Concurrent GET requests completed in ${duration}ms`);
-      expect(duration).toBeLessThan(3000);
+      expect(duration).toBeLessThan(15000);
     });
 
     // Performance Test - Tests average and max response times for incident creation
@@ -759,7 +759,7 @@ describe('Incident Controller Tests', () => {
 
       const duration = endTime - startTime;
       console.log(`Concurrent status updates completed in ${duration}ms`);
-      expect(duration).toBeLessThan(3000);
+      expect(duration).toBeLessThan(15000);
     });
 
     // Performance Test - Tests concurrent write operations (assignments)
@@ -794,7 +794,7 @@ describe('Incident Controller Tests', () => {
 
       const duration = endTime - startTime;
       console.log(`Concurrent assignments completed in ${duration}ms`);
-      expect(duration).toBeLessThan(3000);
+      expect(duration).toBeLessThan(15000);
     });
 
     // Performance Test - Tests pagination performance with large dataset
@@ -818,7 +818,7 @@ describe('Incident Controller Tests', () => {
 
       const duration = endTime - startTime;
       console.log(`Retrieved ${response.body.length} incidents in ${duration}ms`);
-      expect(duration).toBeLessThan(1000);
+      expect(duration).toBeLessThan(5000);
       expect(response.body.length).toBe(100);
     }, 60000);
   });

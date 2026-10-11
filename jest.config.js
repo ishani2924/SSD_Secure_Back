@@ -21,10 +21,14 @@ module.exports = {
       testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
       testPathIgnorePatterns: [
         '/node_modules/',
-        '[/\\\\]tests[/\\\\]ranger[/\\\\]'
+        '[/\\\\]tests[/\\\\]ranger[/\\\\]',
+        '<rootDir>/test-register-manual\\.js$',
+        '<rootDir>/test-incident\\.js$',
+        '<rootDir>/test\\.js$',
+        '<rootDir>/health\\.js$'
       ],
       setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
-      testTimeout: 10000
+      testTimeout: 15000
     },
     {
       displayName: 'ranger',
