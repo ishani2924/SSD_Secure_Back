@@ -19,6 +19,7 @@ const { apiLimiter } = require('./middleware/rateLimiters');
 // [NEW FEATURE] Google OAuth Strategy Configuration
 // This runs AFTER dotenv.config() so env vars are available
 // ============================================================
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 passport.use(new GoogleStrategy(
     {
         clientID: process.env.GOOGLE_CLIENT_ID,
@@ -56,6 +57,7 @@ passport.use(new GoogleStrategy(
         }
     }
 ));
+}
 
 passport.serializeUser((user, done) => { done(null, user.id); });
 passport.deserializeUser(async (id, done) => {
@@ -74,6 +76,7 @@ const app = express();
 app.use(cors({
     origin: process.env.FRONTEND_URL || ['http://localhost:5173', 'http://[::1]:5173'],
     credentials: true
+}));
 // Fix 1: Disable X-Powered-By header to prevent information leakage
 app.disable('x-powered-by');
 

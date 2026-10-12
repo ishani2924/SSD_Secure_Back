@@ -3,10 +3,12 @@ const OpenAI = require('openai');
 
 // ── Setup ──────────────────────────────────────────────────────────────────
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY
+    ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    : null;
 
-if (!process.env.OPENAI_API_KEY) {
-    console.error('ERROR: OPENAI_API_KEY is missing from .env');
+if (!openai) {
+    console.warn('OPENAI_API_KEY is missing. AI features will be disabled.');
 }
 
 // Expert persona used in all prompts
@@ -17,6 +19,9 @@ Always respond with valid JSON only — no extra text, no markdown code fences.`
 // ── Low-level helper ───────────────────────────────────────────────────────
 
 async function askOpenAI(userMessage, maxTokens = 1000) {
+    if (!openai) {
+        throw new Error('OPENAI_API_KEY is not configured');
+    }
     const response = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
         messages: [

@@ -92,9 +92,6 @@ exports.register = async (req, res) => {
             sameSite: 'strict',
             maxAge: jwtOptions.refreshCookieMaxAge
         });
-        const token = generateToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-        setAuthCookies(res, token, refreshToken);
 
         res.status(201).json({
             user: { id: user._id, name: user.name, email: user.email, role: user.role }
@@ -141,9 +138,6 @@ exports.login = async (req, res) => {
             sameSite: 'strict',
             maxAge: jwtOptions.refreshCookieMaxAge
         });
-        const token = generateToken(user._id);
-        const refreshToken = generateRefreshToken(user._id);
-        setAuthCookies(res, token, refreshToken);
 
         res.json({
             user: { id: user._id, name: user.name, email: user.email, role: user.role }
